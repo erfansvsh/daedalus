@@ -1,0 +1,50 @@
+name: Build DaedalusX64
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [arm64]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+      with:
+        platforms: arm64
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential libpng-dev zlib1g-dev libminizip-dev libglew-dev libsdl2-dev
+
+    - name: Build DaedalusX64
+      run: |
+        git clone https://github.com/DaedalusX64/daedalus.git
+        cd daedalus
+        make -j$(nproc)
+
+    - name: Package as AppImage
+      run: |
+        sudo apt install -y appimagetool
+        ./appimagetool.AppImage ./daedalus.AppDir
+
+    - name: Upload AppImage
+      uses: actions/upload-artifact@v2
+      with:
+        name: DaedalusX64-AppImage
+        path: ./daedalus/daedalus.AppImage
